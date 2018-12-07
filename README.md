@@ -1,2 +1,3 @@
-# VirtualColumns
-Dynamic way to perform numerical operation on pandas dataframe and dict
+# virtual_point_core
+
+Core algorithm for building virtual points' dependencies, and applying corresponding numerical operation
