@@ -48,8 +48,14 @@ class GraphManager:
         for single_point_logic in point_logic.items():
             self._add_logic_to_graph(single_point_logic)
 
+    @property
+    def column_properties(self) -> Dict[str, dict]:
+        ret = dict()
         for name, node in self.__point_node_caches.items():
-            print(name + ':', node.number_of_edges, node.is_virtual_point)
+            ret.update({
+                name: {'edges': node.number_of_edges, 'is_virtual': node.is_virtual_point}
+            })
+        return ret
 
     def _add_logic_to_graph(self, single_logic: Tuple[str, List[str]]):
         target, logic = single_logic
@@ -82,7 +88,7 @@ class GraphManager:
         else:
             return True
 
-    def sort_by_topological_order(self, return_sequence=False) -> Optional[List[str]]:
+    def sort_by_topological_order(self) -> None:
         self.__reset_visit_node()
         for node in self.__point_node_caches.values():
             if node.visited:
@@ -90,7 +96,9 @@ class GraphManager:
             else:
                 self.visit_all_node(node)
 
-        print(self.__topological_order)
+    @property
+    def topological_order(self) -> List[str]:
+        return self.__topological_order[:]
 
     def __reset_visit_node(self) -> None:
         for point, node in self.__point_node_caches.items():
