@@ -13,16 +13,22 @@ class Checker:
             # virtual point
             point_list: List[str] = list()
             for element in single_logic:
-                if element not in OPERATOR_POOL:
-                    point_list.append(element)
-                else:
+                if element in OPERATOR_POOL:
                     # here we assume all operation take 2 arguments
                     try:
-                        point_list.pop(-1)
-                        point_list.pop(-1)
+                        point_list.pop()
+                        point_list.pop()
                         point_list.append('dummy')
                     except IndexError:
                         raise SyntaxError('Invalid logic (more operators than points)')
+                elif 'f:' in element:
+                    tag, func, args = element.split(':')
+                    for i in range(int(args)):
+                        point_list.pop()
+                    point_list.append('dummy')
+                else:
+                    # normal column
+                    point_list.append(element)
 
             # return length of remained point list, it should be zero for normal logic
             if len(point_list) > 1:
