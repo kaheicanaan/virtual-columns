@@ -10,7 +10,7 @@ class VirtualColumnBuilder:
     def __init__(self, mode='with_full_logic'):
         self.__logic: Dict[str, List[str]] = None
         self.graph_manager: GraphManager = GraphManager()
-        self.__udf: UserDefinedFunction = UserDefinedFunction()
+        self.udf: UserDefinedFunction = UserDefinedFunction()
         self.__numeric_operator: Dict[str, Callable] = {
             '+': lambda x, y: x + y,
             '-': lambda x, y: x - y,
@@ -59,6 +59,9 @@ class VirtualColumnBuilder:
             return self.__numeric_operator[opt](value1, value2)
 
         # ===== build virtual columns =====
+        # check whether input is a dictionary
+        is_dict = isinstance(data, dict)
+
         # sequentially build virtual column
         for column in self.graph_manager.topological_order:
             if len(self.__logic[column]) == 0:
@@ -82,9 +85,10 @@ class VirtualColumnBuilder:
                     # reverse list [arg3, arg2, arg1] -> [arg1, arg2, arg3]
                     arg_list.reverse()
                     # apply user defined function
-                    operand_stack.append(
-                        self.__udf.get_function(func)(arg_list)
-                    )
+                    values = self.udf.get_function(func)(arg_list)
+                    if is_dict:
+                        values = values[0]
+                    operand_stack.append(values)
                 elif 'c:' in element:
                     # append float to stack
                     operand_stack.append(to_stack(element))

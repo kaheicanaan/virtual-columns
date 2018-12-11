@@ -12,7 +12,7 @@ class UserDefinedFunction:
     each element is a numpy array with shape (1, 1)
     """
     @staticmethod
-    def to_numpy_array(arg_list: List[Any]) -> List[np.ndarray]:
+    def __to_numpy_array(arg_list: List[Any]) -> List[np.ndarray]:
         """
         Convert list of element with types
         1. pd.Series of length n
@@ -47,13 +47,13 @@ class UserDefinedFunction:
 
     @staticmethod
     def nanmedian(arg_list: List[Any]):
-        data = UserDefinedFunction.to_numpy_array(arg_list)
+        data = UserDefinedFunction.__to_numpy_array(arg_list)
         arr = np.concatenate(data, axis=1)
         return np.nanmedian(arr, axis=1)
 
     @staticmethod
     def nanmean(arg_list: List[Any]):
-        data = UserDefinedFunction.to_numpy_array(arg_list)
+        data = UserDefinedFunction.__to_numpy_array(arg_list)
         arr = np.concatenate(data, axis=1)
         return np.nanmean(arr, axis=1)
 
@@ -66,6 +66,9 @@ class UserDefinedFunction:
                 continue
             else:
                 self.__user_function.update({content: getattr(self, content)})
+
+    def add_user_defined_function(self, name: str, func: Callable):
+        self.__user_function.update({name: func})
 
     def get_function(self, func_name: str) -> Callable:
         if func_name in self.__user_function:
