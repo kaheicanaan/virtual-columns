@@ -1,8 +1,9 @@
-from VirtualColumns import VirtualColumnBuilder
+from virtual_columns import VirtualColumnBuilder
 
 from pprint import pprint
 import pandas as pd
 import numpy as np
+import random
 
 
 all_point_logic = {
@@ -24,6 +25,7 @@ all_point_logic = {
     'o': ['n', 'c:1', 'j', 'k', 'f:nanmean:3', '+']  # (1) numeric operation, (2) function
 }
 
+# pandas implementation
 df = pd.DataFrame(np.random.randn(100), columns=['k'])
 df['j'] = 10
 df['i'] = 100
@@ -32,12 +34,27 @@ df['h'][4] = False
 print(df.head())
 print(df.dtypes)
 
+# dictionary implementation
+df = {
+    'k': random.gauss(0, 1),
+    'j': 10,
+    'i': 100,
+    'h': True
+}
+
 vc = VirtualColumnBuilder()
 is_valid, error_msg = vc.build_dependency_graph(all_point_logic)
-pprint(error_msg)
+if not is_valid:
+    pprint(error_msg)
+    exit()
+
 pprint(vc.graph_manager.column_properties)
 print(vc.graph_manager.topological_order)
 
-if is_valid:
-    df = vc.build_virtual_columns(df)
+df = vc.build_virtual_columns(df)
+if isinstance(df, pd.DataFrame):
     print(df.head().T)
+else:
+    pprint(df)
+
+vc.udf.add_user_defined_function({'nanstd': np.nanstd})
