@@ -21,8 +21,7 @@ all_point_logic = {
     'k': [],  # real point
     'l': ['m', 'c:10.0', '>'],  # float > float
     'm': ['g', 'h', '*'],  # float * bool
-    'n': ['c:1'],  # constant column (float)
-    'o': ['n', 'c:1', 'j', 'k', 'f:nanmean:3', '+']  # (1) numeric operation, (2) function
+    'n': ['m', 'c:1', 'j', 'k', 'f:nanmean:3', '+']  # (1) numeric operation, (2) function
 }
 
 # pandas implementation
@@ -48,13 +47,19 @@ if not is_valid:
     pprint(error_msg)
     exit()
 
+print('column_properties:')
 pprint(vc.graph_manager.column_properties)
-print(vc.graph_manager.topological_order)
+print('topological_order:', vc.graph_manager.topological_order)
 
-df = vc.build_virtual_columns(df)
+required_cols = vc.determine_required_columns(['g'])
+print('required_cols:', required_cols)
 if isinstance(df, pd.DataFrame):
+    df = df[required_cols]
+    df = vc.build_virtual_columns(df, required_cols)
     print(df.head().T)
 else:
+    df = {k: v for k, v in df.items() if k in required_cols}
+    df = vc.build_virtual_columns(df, required_cols)
     pprint(df)
 
-vc.udf.add_user_defined_function({'nanstd': np.nanstd})
+# vc.udf.add_user_defined_function({'nanstd': np.nanstd})

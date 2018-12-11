@@ -1,5 +1,5 @@
 from .Const import *
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Set
 from copy import deepcopy
 
 
@@ -42,11 +42,16 @@ class Node:
 class GraphManager:
     def __init__(self):
         self.__point_node_caches: Dict[str, Node] = dict()  # store address of point node
-        self.__topological_order: List[str] = list()
+        self.__topological_order: List[str] = list()  # for topological order (all points)
+        self.__sub_tree: List[str] = list()  # for dependency (limit to expected output)
 
     def build_graph_from_scratch(self, point_logic):
         for single_point_logic in point_logic.items():
             self._add_logic_to_graph(single_point_logic)
+
+    @property
+    def nodes(self) -> Dict[str, Node]:
+        return deepcopy(self.__point_node_caches)
 
     @property
     def column_properties(self) -> Dict[str, dict]:
@@ -90,11 +95,14 @@ class GraphManager:
 
     def sort_by_topological_order(self) -> None:
         self.__reset_visit_node()
+        self.__topological_order = list()
+        # O(n) searching to visit all node
         for node in self.__point_node_caches.values():
             if node.visited:
                 continue
             else:
-                self.visit_all_node(node)
+                # if a node is unvisited, visit it and all of its unvisited children
+                self.__visit_all_node(node)
 
     @property
     def topological_order(self) -> List[str]:
@@ -104,17 +112,45 @@ class GraphManager:
         for point, node in self.__point_node_caches.items():
             node.visited = False
 
-    def visit_all_node(self, node: Node):
+    def __visit_all_node(self, node: Node):
         # recursively visit all nodes (points only) in graph
         for child in node.edges:
             if child.visited:
                 continue
             else:
-                self.visit_all_node(child)
+                self.__visit_all_node(child)
         node.visited = True
         if self.__is_point(node.name):
             self.__topological_order.append(node.name)
         return
 
-    def __is_point(self, name: str):
+    def __is_point(self, name: str) -> bool:
         return True if ':' not in name else False
+
+    def get_dependency(self, expected_output: List[str]) -> List[str]:
+        # implementation: refer to sort_by_topological_order()
+        self.__reset_visit_node()
+        self.__sub_tree = list()
+        required_nodes = [self.__point_node_caches[col] for col in expected_output]
+        # O(n) searching to visit all children
+        for node in required_nodes:
+            if node.visited:
+                continue
+            else:
+                # if a node is unvisited, visit it and all of its unvisited children
+                self.__get_all_node(node)
+
+        return self.__sub_tree
+
+    def __get_all_node(self, node: Node):
+        # implementation: refer to __visit_all_node()
+        # recursively visit and return all children
+        for child in node.edges:
+            if child.visited:
+                continue
+            else:
+                self.__get_all_node(child)
+        node.visited = True
+        if self.__is_point(node.name):
+            self.__sub_tree.append(node.name)
+        return

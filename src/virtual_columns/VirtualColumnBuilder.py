@@ -45,9 +45,14 @@ class VirtualColumnBuilder:
 
     def rebuild_dependency_graph(self, point_logic: Dict[str, List[str]]) -> Tuple[bool, Dict[str, Any]]:
         self.reset_dependency_graph()
-        self.build_dependency_graph(point_logic)
+        return self.build_dependency_graph(point_logic)
 
-    def build_virtual_columns(self, data: Union[pd.DataFrame, dict]) -> Union[pd.DataFrame, dict]:
+    def determine_required_columns(self, expected_output: List[str]) -> List[str]:
+        # return all dependency, in topological order
+        return self.graph_manager.get_dependency(expected_output)
+
+    def build_virtual_columns(self, data: Union[pd.DataFrame, dict], expected_output: List[str])\
+            -> Union[pd.DataFrame, dict]:
         def to_stack(tagged_value) -> Union[pd.Series, float, bool]:
             if 'c:' in tagged_value:
                 return float(tagged_value[2:])
@@ -63,7 +68,7 @@ class VirtualColumnBuilder:
         is_dict = isinstance(data, dict)
 
         # sequentially build virtual column
-        for column in self.graph_manager.topological_order:
+        for column in expected_output:
             if len(self.__logic[column]) == 0:
                 # not a virtual column
                 continue
