@@ -1,4 +1,4 @@
-# Virtual columns
+# Virtual columns (not in latest version)
 
 This repository aims to simplify the features generating work during data preprocessing.
 
