@@ -51,7 +51,8 @@ print('column_properties:')
 pprint(vc.graph_manager.column_properties)
 print('topological_order:', vc.graph_manager.topological_order)
 
-required_cols = vc.determine_required_columns(['g'])
+to_be_queried, required_cols = vc.determine_required_columns(['n'])
+print('to_be_queried:', to_be_queried)
 print('required_cols:', required_cols)
 if isinstance(df, pd.DataFrame):
     df = df[required_cols]

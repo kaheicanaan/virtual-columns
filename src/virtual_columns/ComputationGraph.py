@@ -43,6 +43,7 @@ class GraphManager:
     def __init__(self):
         self.__point_node_caches: Dict[str, Node] = dict()  # store address of point node
         self.__topological_order: List[str] = list()  # for topological order (all points)
+
         self.__sub_tree: List[str] = list()  # for dependency (limit to expected output)
 
     def build_graph_from_scratch(self, point_logic):
@@ -127,7 +128,7 @@ class GraphManager:
     def __is_point(self, name: str) -> bool:
         return True if ':' not in name else False
 
-    def get_dependency(self, expected_output: List[str]) -> List[str]:
+    def get_dependency(self, expected_output: List[str]) -> Tuple[List[str], List[str]]:
         # implementation: refer to sort_by_topological_order()
         self.__reset_visit_node()
         self.__sub_tree = list()
@@ -138,18 +139,20 @@ class GraphManager:
                 continue
             else:
                 # if a node is unvisited, visit it and all of its unvisited children
-                self.__get_all_node(node)
+                self.__get_all_leave(node)
 
-        return self.__sub_tree
+        # return (1) leaves for query and (2) sub-tree for virtual column building
+        leaves = [leaf for leaf in self.__sub_tree if self.__point_node_caches[leaf].is_virtual_point is False]
+        return leaves, self.__sub_tree
 
-    def __get_all_node(self, node: Node):
+    def __get_all_leave(self, node: Node):
         # implementation: refer to __visit_all_node()
         # recursively visit and return all children
         for child in node.edges:
             if child.visited:
                 continue
             else:
-                self.__get_all_node(child)
+                self.__get_all_leave(child)
         node.visited = True
         if self.__is_point(node.name):
             self.__sub_tree.append(node.name)
