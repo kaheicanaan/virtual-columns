@@ -51,16 +51,19 @@ print('column_properties:')
 pprint(vc.graph_manager.column_properties)
 print('topological_order:', vc.graph_manager.topological_order)
 
-to_be_queried, required_cols = vc.determine_required_columns(['n'])
+target_cols = ['n']
+to_be_queried, output_cols = vc.determine_required_columns(target_cols)
 print('to_be_queried:', to_be_queried)
-print('required_cols:', required_cols)
+print('required_cols:', output_cols)
 if isinstance(df, pd.DataFrame):
-    df = df[required_cols]
-    df = vc.build_virtual_columns(df, required_cols)
+    df = df[to_be_queried]
+    print(df)
+    df = vc.build_virtual_columns(df, output_cols)
     print(df.head().T)
 else:
-    df = {k: v for k, v in df.items() if k in required_cols}
-    df = vc.build_virtual_columns(df, required_cols)
+    df = {k: v for k, v in df.items() if k in to_be_queried}
+    print(df)
+    df = vc.build_virtual_columns(df, output_cols)
     pprint(df)
 
 # vc.udf.add_user_defined_function({'nanstd': np.nanstd})

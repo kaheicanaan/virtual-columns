@@ -1,4 +1,4 @@
-# Virtual columns (not in latest version)
+# Virtual columns
 
 This repository aims to simplify the features generating work during data preprocessing.
 
@@ -30,8 +30,16 @@ $ python
 >>> vc = virtual_columns.VirtualColumnBuilder()
 >>> vc.build_dependency_graph(method)
 (True, {})
->>> data = vc.build_virtual_columns(data)
->>> print(data)
+
+>>> target_columns = ['a', 'c']
+>>> to_be_queried, output_cols = vc.determine_required_columns(target_columns)
+>>> to_be_queried
+['a', 'b']
+>>> output_cols
+['a', 'b', 'c']
+
+>>> data = vc.build_virtual_columns(data, output_cols)
+>>> data
 {'a': 1, 'b': 2, 'c': -1}
 ```
 Done!
@@ -94,6 +102,8 @@ method = {
 }
 ```
 
+*: for UDF with != 2 arguments, we cannot represent the graph in post-order traversal form.
+
 #### operands and operators
 There are 2 types of operands. We can distinguish them according to their syntax.
 1. physical data: "column_name"
@@ -125,7 +135,14 @@ Please go to virtual_columns.UserDefinedFunction for more details. (to be filled
 
 ## How to use
 Please study the sample code below about the module's functionality.
-Dictionary implementation is used for simplicity.
+Logic flow are given by:
+1. feed calculation methods into VirtualColumnBuilder (VC)
+2. tell VC what target columns are 
+3. VC returns columns that needed to be queried, the output columns in topological order
+4. query required data and feed it into VC
+5. VC returns data with target columns
+
+Dictionary implementation is used here for simplicity.
 ```python
 from virtual_columns import VirtualColumnBuilder
 from pprint import pprint
@@ -149,16 +166,7 @@ all_point_logic = {
     'k': [],  # 'physical' point
     'l': ['m', 'c:10.0', '>'],  # float > float (comparison)
     'm': ['g', 'h', '*'],  # float * bool (cross type operation)
-    'n': ['c:1'],  # constant column (float)
-    'o': ['n', 'c:1', 'j', 'k', 'f:nanmean:3', '+']  # (1) numeric operation, (2) function
-}
-
-# dictionary input
-df = {
-    'k': random.gauss(0, 1),
-    'j': 10,
-    'i': 100,
-    'h': True
+    'n': ['m', 'c:1', 'j', 'k', 'f:nanmean:3', '+']  # (1) numeric operation, (2) function
 }
 
 # virtual columns core
@@ -183,35 +191,45 @@ pprint(vc.graph_manager.column_properties)
 print(vc.graph_manager.topological_order)
 
 # get data with virtual data
-df = vc.build_virtual_columns(df)
-if isinstance(df, pd.DataFrame):
-    print(df.head().T)
+# let say we need column 'n'
+target_cols = ['n']
+to_be_queried, output_cols = vc.determine_required_columns(target_cols)
+
+# base columns to be queried are: ['j', 'k', 'h']
+# output columns (in topological order): ['j', 'k', 'g', 'h', 'm', 'n']
+# user should query the requried data according to to_be_queried
+
+# input data: {'k': -0.06442726426445117, 'j': 10, 'h': True}
+data = {
+    'k': random.gauss(0, 1),
+    'j': 10,
+    'h': True
+}
+
+data = vc.build_virtual_columns(data, output_cols)
+if isinstance(data, pd.DataFrame):
+    print(data.head().T)
 else:
-    pprint(df)
+    pprint(data)
+
+# output data: 
+# {'g': 9.93557273573555,
+# 'h': True,
+# 'j': 10,
+# 'k': -0.06442726426445117,
+# 'm': 9.93557273573555,
+# 'n': 13.5807636476474}
+print(data)
 
 # not shown here, we can provide UDF in for extra calculation method
 # demo only, not working
-vc.udf.add_user_defined_function({'nanstd': np.nanstd})
+vc.udf.add_user_defined_function('nanstd', np.nanstd)
 ```
 
 ## To do list
 
-#### Customize output columns
-Currently, this module returns ALL virtual data once the corresponding calculation method is given.
-However, output data set should be dynamically adjusted based on user's requirement. i.e.
-
-```python
-# pre-defined calculation method (all virtual data are included here)
-method = {'a': [], 'b': [], 'c': ['a', 'b', '-'], 'd': ['a', 'b', '*']}
-
-# based on what we need, return corresponding columns for user to make query
-target_columns = ['a', 'c']
-to_be_queried = vc.get_required_base_columns(target_columns)
-# we expect to_be_queried = ['a', 'b']
-data = UserQueriesDataFromOtherProgramme.query(to_be_queried)
-data = vc.build_virtual_columns(data)
-# we expect data = {'a': value1, 'c': value2}
-```
+#### Handle loop dependence
+Implement loop dependence detection in virtual_columns.Checker
 
 #### Vistualize dependencies
 It seems quite difficult because the dependency graph is NOT a binary tree (due to multi-argument UDF).

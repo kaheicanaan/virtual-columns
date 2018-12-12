@@ -47,7 +47,7 @@ class VirtualColumnBuilder:
         self.reset_dependency_graph()
         return self.build_dependency_graph(point_logic)
 
-    def determine_required_columns(self, expected_output: List[str]) -> List[str]:
+    def determine_required_columns(self, expected_output: List[str]) -> Tuple[List[str], List[str]]:
         # return all dependency, in topological order
         return self.graph_manager.get_dependency(expected_output)
 
